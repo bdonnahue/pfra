@@ -73,6 +73,32 @@ pfra_meta_data() {
 # Actions
 # ===================================================
 
+# The start and stop action relies on the service script returning a non zero exit code if the 
+# service cannot be started successfully.
+
+pfra_meta_start(){
+    ocf_log info "Starting the ${OCF_RESKEY_service_name} service using systemctl."
+    systemctl start $OCF_RESKEY_service_name
+    last_exit_code=$?
+    ocf_log info "Starting the service returned ${last_exit_code} exit code"
+    if [ "$last_exit_code" == "0" ]; then
+        return $OCF_SUCCESS
+    else
+        return $OCF_ERR_GENERIC
+    fi
+}
+
+pfra_meta_stop(){
+    ocf_log info "Stopping the ${OCF_RESKEY_service_name} service using systemctl."
+    systemctl stop $OCF_RESKEY_service_name
+    last_exit_code=$?
+    ocf_log info "Starting the service returned ${last_exit_code} exit code"
+    if [ "$last_exit_code" == "0" ]; then
+        return $OCF_SUCCESS
+    else
+        return $OCF_ERR_GENERIC
+    fi
+}
 
 # ===================================================
 # Main
