@@ -23,8 +23,8 @@ OCF_RESKEY_demote_script_default="/tmp/demote.sh"
 # Initialize
 # ===================================================
 
-: ${OCF_FUNCTIONS_DIR=${OCF_ROOT}/lib/heartbeat}
-. ${OCF_FUNCTIONS_DIR}/ocf-shellfuncs
+#: ${OCF_FUNCTIONS_DIR=${OCF_ROOT}/lib/heartbeat}
+#. ${OCF_FUNCTIONS_DIR}/ocf-shellfuncs
 
 # ===================================================
 # Usage
@@ -44,6 +44,7 @@ OCF_RESKEY_demote_script_default="/tmp/demote.sh"
 #       status - historical (deprecated) synonym for monitor.
 
 usage() {
+    echo "usage"
     cat <<EOF
         usage: $0 start|stop|monitor|meta-data|promote|demote
         $0 manage resources which support a master-slave configuration.
@@ -73,3 +74,11 @@ pfra_meta_data() {
 # ===================================================
 
 
+# ===================================================
+# Main
+# ===================================================
+
+case "$1" in
+    *)
+        usage
+esac
