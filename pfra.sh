@@ -7,10 +7,17 @@
 # ===================================================
 # Resource Parameters
 # ===================================================
+# Set the defaults
+
+OCF_RESKEY_service_name_default="foobar"
+OCF_RESKEY_promote_script_default="/tmp/promote.sh"
+OCF_RESKEY_demote_script_default="/tmp/demote.sh"
+
 # Assign the default values specified if values were not supplied by the user
 
-: ${OCF_RESKEY_promote_script_default="/tmp/promote.sh"}
-: ${OCF_RESKEY_demote_script_default="/tmp/demote.sh"}
+: ${OCF_RESKEY_service_name=${OCF_RESKEY_service_name_default}}
+: ${OCF_RESKEY_promote_script=${OCF_RESKEY_promote_script_default}}
+: ${OCF_RESKEY_demote_script=${OCF_RESKEY_demote_script_default}}
 
 # ===================================================
 # Initialize
@@ -54,5 +61,15 @@ EOF
 # incorrect arguments. This is a safety net "can’t happen" error which the resource agent should only return when invoked with, for example, an incorrect number of command line arguments.
 
 # ===================================================
+# Metadata
+# ===================================================
+
+pfra_meta_data() {
+    cat $(pwd)/pfra-metadata.xml
+}
+
+# ===================================================
 # Actions
 # ===================================================
+
+

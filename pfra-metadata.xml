@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">
+
+<resource-agent name="named">
+
+    <version>1.0</version>
+    <longdesc lang="en">Resource script for named (Bind) server. It manages named as an HA resource.</longdesc>
+    <shortdesc lang="en">Manages a named server</shortdesc>
+
+    <parameters>
+
+        <parameter name="service_namet" unique="0" required="0">
+            <longdesc lang="en">The name of service to monitor.</longdesc>
+            <shortdesc lang="en">The name of service to monitor</shortdesc>
+            <content type="string" default="${OCF_RESKEY_service_name_default}" />
+        </parameter>
+
+        <parameter name="promote_script" unique="0" required="0">
+            <longdesc lang="en">Path to the script which will promote a node to the master role.</longdesc>
+            <shortdesc lang="en">Promotion script path</shortdesc>
+            <content type="string" default="${OCF_RESKEY_promote_script}" />
+        </parameter>
+
+        <parameter name="demote_script" unique="0" required="0">
+            <longdesc lang="en">Path to the script which will demote a node to the slave role.</longdesc>
+            <shortdesc lang="en">Demotion script path</shortdesc>
+            <content type="string" default="${OCF_RESKEY_demote_script_default}" />
+        </parameter>
+
+    </parameters>
+
+    <actions>
+        <action name="start" timeout="60s" />
+        <action name="stop" timeout="60s" />
+        <action name="monitor" depth="0" timeout="30s" interval="30s"/>
+        <action name="meta-data" timeout="5s" />
+        <action name="promote" timeout="5s" />
+        <action name="demote" timeout="5s" />
+    </actions>
+</resource-agent>
