@@ -95,13 +95,56 @@ pfra_meta_stop(){
     ocf_log info "Stopping the ${OCF_RESKEY_service_name} service using systemctl."
     systemctl stop $OCF_RESKEY_service_name
     last_exit_code=$?
-    ocf_log info "Stopping the service returned ${last_exit_code} exit code"
+    ocf_log info "Stopping the service returned ${last_exit_code} exit code."
     if [ "$last_exit_code" == "0" ]; then
-        ocf_log info "Stopping the service succeeded"
+        ocf_log info "Stopping the service succeeded."
         return $OCF_SUCCESS
     else
+        ocf_log error "Stopping the service failed."
         return $OCF_ERR_GENERIC
     fi
+}
+
+service_is_running(){
+  SERVICE_STATUS=$(systemctl status ${OCF_RESKEY_service_name} | grep -E '^   Active: active \(running\)' || true)
+  echo $SERVICE_STATUS
+  if [ -z "${SERVICE_STATUS}" ]; then
+    return 1
+  fi
+
+  return 0 # True
+}
+
+pfra_meta_promote(){
+
+    if ! service_is_running ; then
+      ocf_log error "The service '${OCF_RESKEY_service_name}' cannot be promoted because it is not running."
+      return $OCF_ERR_GENERIC
+    fi
+
+    if [ ! -f ${OCF_RESKEY_promote_script} ]; then
+      ocf_log error "The promotion script does not exist at path: ${OCF_RESKEY_promote_script}"
+      return $OCF_ERR_GENERIC
+    fi
+
+    ocf_log info "Executing the promotion script."
+    bash ${OCF_RESKEY_promote_script}
+}
+
+pfra_meta_demote(){
+
+    if ! service_is_running ; then
+      ocf_log error "The service '${OCF_RESKEY_service_name}' cannot be demoted because it is not running."
+      return $OCF_ERR_GENERIC
+    fi
+
+    if [ ! -f ${OCF_RESKEY_demote_script} ]; then
+      ocf_log error "The demotion script does not exist at path: ${OCF_RESKEY_demote_script}"
+      return $OCF_ERR_GENERIC
+    fi
+
+    ocf_log info "Executing the demotion script."
+    bash ${OCF_RESKEY_demote_script}
 }
 
 # ===================================================
@@ -111,6 +154,12 @@ pfra_meta_stop(){
 case "$1" in
     start)
         pfra_meta_start ;;
+    stop)
+        pfra_meta_stop ;;
+    promote)
+        pfra_meta_promote ;;
+    demote)
+        pfra_meta_demote ;;
     *)
         usage ;;
 esac
