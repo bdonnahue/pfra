@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # ===================================================
 # Author and Liscense
 # ===================================================
@@ -23,8 +25,8 @@ OCF_RESKEY_demote_script_default="/tmp/demote.sh"
 # Initialize
 # ===================================================
 
-#: ${OCF_FUNCTIONS_DIR=${OCF_ROOT}/lib/heartbeat}
-#. ${OCF_FUNCTIONS_DIR}/ocf-shellfuncs
+: ${OCF_FUNCTIONS_DIR=${OCF_ROOT}/lib/heartbeat}
+. ${OCF_FUNCTIONS_DIR}/ocf-shellfuncs
 
 # ===================================================
 # Usage
@@ -82,6 +84,7 @@ pfra_meta_start(){
     last_exit_code=$?
     ocf_log info "Starting the service returned ${last_exit_code} exit code"
     if [ "$last_exit_code" == "0" ]; then
+        ocf_log info "Starting the service succeeded"
         return $OCF_SUCCESS
     else
         return $OCF_ERR_GENERIC
@@ -92,8 +95,9 @@ pfra_meta_stop(){
     ocf_log info "Stopping the ${OCF_RESKEY_service_name} service using systemctl."
     systemctl stop $OCF_RESKEY_service_name
     last_exit_code=$?
-    ocf_log info "Starting the service returned ${last_exit_code} exit code"
+    ocf_log info "Stopping the service returned ${last_exit_code} exit code"
     if [ "$last_exit_code" == "0" ]; then
+        ocf_log info "Stopping the service succeeded"
         return $OCF_SUCCESS
     else
         return $OCF_ERR_GENERIC
@@ -105,6 +109,8 @@ pfra_meta_stop(){
 # ===================================================
 
 case "$1" in
+    start)
+        pfra_meta_start ;;
     *)
-        usage
+        usage ;;
 esac
