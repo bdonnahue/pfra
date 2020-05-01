@@ -14,12 +14,14 @@ set -e
 OCF_RESKEY_service_name_default="foobar"
 OCF_RESKEY_promote_script_default="/tmp/promote.sh"
 OCF_RESKEY_demote_script_default="/tmp/demote.sh"
+OCF_RESKEY_monitor_script_default="/tmp/monitor.sh"
 
 # Assign the default values specified if values were not supplied by the user
 
 : ${OCF_RESKEY_service_name=${OCF_RESKEY_service_name_default}}
 : ${OCF_RESKEY_promote_script=${OCF_RESKEY_promote_script_default}}
 : ${OCF_RESKEY_demote_script=${OCF_RESKEY_demote_script_default}}
+: ${OCF_RESKEY_monitor_script=${OCF_RESKEY_monitor_script_default}}
 
 # ===================================================
 # Initialize
@@ -115,6 +117,24 @@ service_is_running(){
   return 0 # True
 }
 
+pfra_meta_monitor(){
+  ocf_log info "Determining the state of the resource."
+
+  if ! service_is_running ; then
+    ocf_log info "The service '${OCF_RESKEY_service_name}' is not running."
+    return $OCF_NOT_RUNNING
+  fi
+
+  if [ ! -f ${OCF_RESKEY_monitor_script} ]; then
+    ocf_log error "The monitor script does not exist at path: ${OCF_RESKEY_monitor_script}"
+    return $OCF_ERR_GENERIC
+  fi
+
+  ocf_log info "Executing the monitor script."
+  bash $OCF_RESKEY_monitor_script "$OCF_FUNCTIONS_DIR"
+  return $?
+}
+
 pfra_meta_promote(){
 
     if ! service_is_running ; then
@@ -156,6 +176,8 @@ case "$1" in
         pfra_meta_start ;;
     stop)
         pfra_meta_stop ;;
+    monitor)
+        pfra_meta_monitor ;;
     promote)
         pfra_meta_promote ;;
     demote)

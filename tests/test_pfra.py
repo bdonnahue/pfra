@@ -11,13 +11,13 @@ class Test_pfra(TestCase):
         self.mock_service_name = "MockService"
 
         # Determine the current directory
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        self.root_dir = os.path.dirname(current_dir)
+        self.current_dir = os.path.dirname(os.path.realpath(__file__))
+        self.root_dir = os.path.dirname(self.current_dir)
 
         # Determine the path to the shell script
         self.shell_script_path = os.path.join(self.root_dir, "src", "pfra.sh")
-        self.promote_script_path = os.path.join(current_dir, "MockService", "promote.sh")
-        self.demote_script_path = os.path.join(current_dir, "MockService", "demote.sh")
+        self.promote_script_path = os.path.join(self.current_dir, "MockService", "promote.sh")
+        self.demote_script_path = os.path.join(self.current_dir, "MockService", "demote.sh")
 
         # Set the environment variables as if we configured the resource agent using pcs
         self.env = os.environ
@@ -135,6 +135,55 @@ class Test_pfra(TestCase):
         self.assertEqual(0, shell_command_results.ExitCode)
         self.assertTrue("Stopping the service succeeded" in shell_command_results.Stderr)
         self.assertFalse(self.__is_service_running())
+
+        if self.__is_service_running():
+            self.__stop_mock_service()
+
+    def test__monitor__success__not_running(self):
+
+        if self.__is_service_running():
+            self.__stop_mock_service()
+
+        tmp_env = self.env.copy()
+        self.env["OCF_RESKEY_monitor_script"] = os.path.join(self.current_dir, "MockService", "monitor-not-running.sh")
+
+        shell_command = "bash {0} monitor".format(self.shell_script_path)
+        with self.assertRaises(ShellCommandException) as shell_command_exception_context:
+            shell_command_results = Shell.execute_shell_command(shell_command, env=self.env)
+        shell_command_exception = shell_command_exception_context.exception
+        self.assertEqual(7, shell_command_exception.ExitCode)
+
+        if self.__is_service_running():
+            self.__stop_mock_service()
+
+    def test__monitor__success__master(self):
+
+        if not self.__is_service_running():
+            self.__start_mock_service()
+
+        tmp_env = self.env.copy()
+        self.env["OCF_RESKEY_monitor_script"] = os.path.join(self.current_dir, "MockService", "monitor-master.sh")
+
+        shell_command = "bash {0} monitor".format(self.shell_script_path)
+        with self.assertRaises(ShellCommandException) as shell_command_exception_context:
+            shell_command_results = Shell.execute_shell_command(shell_command, env=self.env)
+        shell_command_exception = shell_command_exception_context.exception
+        self.assertEqual(8, shell_command_exception.ExitCode)
+
+        if self.__is_service_running():
+            self.__stop_mock_service()
+
+    def test__monitor__success__slave(self):
+
+        if not self.__is_service_running():
+            self.__start_mock_service()
+
+        tmp_env = self.env.copy()
+        self.env["OCF_RESKEY_monitor_script"] = os.path.join(self.current_dir, "MockService", "monitor-slave.sh")
+
+        shell_command = "bash {0} monitor".format(self.shell_script_path)
+        shell_command_results = Shell.execute_shell_command(shell_command, env=self.env)
+        self.assertEqual(0, shell_command_results.ExitCode)
 
         if self.__is_service_running():
             self.__stop_mock_service()
