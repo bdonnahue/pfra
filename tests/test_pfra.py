@@ -41,6 +41,24 @@ class Test_pfra(TestCase):
     def __start_mock_service(self):
         Shell.execute_shell_command("systemctl start {0}".format(self.mock_service_name))
 
+    def test__meta_data__success(self):
+
+        if self.__is_service_running():
+            self.__stop_mock_service()
+
+        shell_command = "bash {0} meta-data".format(self.shell_script_path)
+        shell_command_results = Shell.execute_shell_command(shell_command, env=self.env)
+
+        with open(os.path.join(self.root_dir, 'src', 'pfra-metadata.xml'), 'r') as xml_file:
+            xml = xml_file.read()
+
+        self.assertEqual(0, shell_command_results.ExitCode)
+        self.assertEqual(xml, shell_command_results.Stdout)
+        self.assertFalse(self.__is_service_running())
+
+        if self.__is_service_running():
+            self.__stop_mock_service()
+
     def test__usage__success__called_by_name(self):
         if self.__is_service_running():
             self.__stop_mock_service()
@@ -203,20 +221,15 @@ class Test_pfra(TestCase):
         if self.__is_service_running():
             self.__stop_mock_service()
 
-    def test__promote__Failure__service_not_running(self):
+    def test__promote__success__service_not_running(self):
 
         if self.__is_service_running():
             self.__stop_mock_service()
 
-        try:
-            shell_command = "bash {0} promote".format(self.shell_script_path)
-            shell_command_results = Shell.execute_shell_command(shell_command, env=self.env)
-            raise Exception("The test case did not raise an exception as expected")
-        except ShellCommandException as scex:
-
-            self.assertEqual(1, scex.ExitCode)
-            self.assertTrue("cannot be promoted because it is not running" in scex.Stderr)
-            self.assertFalse(self.__is_service_running())
+        shell_command = "bash {0} promote".format(self.shell_script_path)
+        shell_command_results = Shell.execute_shell_command(shell_command, env=self.env)
+        self.assertEqual(0, shell_command_results.ExitCode)
+        self.assertFalse(self.__is_service_running())
 
         if self.__is_service_running():
             self.__stop_mock_service()
@@ -225,18 +238,37 @@ class Test_pfra(TestCase):
         if not self.__is_service_running():
             self.__start_mock_service()
 
-        try:
-            tmp_env = dict(self.env)
-            tmp_env["OCF_RESKEY_promote_script"] = os.path.join('tmp', "this_does_not_exist.sh")
 
-            shell_command = "bash {0} promote".format(self.shell_script_path)
+        tmp_env = dict(self.env)
+        tmp_env["OCF_RESKEY_promote_script"] = os.path.join('tmp', "this_does_not_exist.sh")
+
+        shell_command = "bash {0} promote".format(self.shell_script_path)
+        with self.assertRaises(ShellCommandException) as scex_context:
             shell_command_results = Shell.execute_shell_command(shell_command, env=tmp_env)
-            raise Exception("The test case did not raise an exception as expected")
-        except ShellCommandException as scex:
+        scex = scex_context.exception
+        self.assertEqual(1, scex.ExitCode)
+        self.assertTrue("promotion script does not exist" in scex.Stderr)
+        self.assertTrue(self.__is_service_running())
 
-            self.assertEqual(1, scex.ExitCode)
-            self.assertTrue("promotion script does not exist" in scex.Stderr)
-            self.assertTrue(self.__is_service_running())
+        if self.__is_service_running():
+            self.__stop_mock_service()
+
+        self.env["OCF_RESKEY_promote_script"] = self.promote_script_path
+
+    def test__promote__Failure__script_returns_non_zero_exit(self):
+        if not self.__is_service_running():
+            self.__start_mock_service()
+
+
+        tmp_env = dict(self.env)
+        tmp_env["OCF_RESKEY_promote_script"] = os.path.join(self.current_dir, "MockService", "promote-non-zero-exit.sh")
+
+        shell_command = "bash {0} promote".format(self.shell_script_path)
+        with self.assertRaises(ShellCommandException) as scex_context:
+            shell_command_results = Shell.execute_shell_command(shell_command, env=tmp_env)
+        scex = scex_context.exception
+        self.assertEqual(12, scex.ExitCode)
+        self.assertTrue(self.__is_service_running())
 
         if self.__is_service_running():
             self.__stop_mock_service()
@@ -258,20 +290,15 @@ class Test_pfra(TestCase):
         if self.__is_service_running():
             self.__stop_mock_service()
 
-    def test__demote__Failure__service_not_running(self):
+    def test__demote__success__service_not_running(self):
 
         if self.__is_service_running():
             self.__stop_mock_service()
 
-        try:
-            shell_command = "bash {0} demote".format(self.shell_script_path)
-            shell_command_results = Shell.execute_shell_command(shell_command, env=self.env)
-            raise Exception("The test case did not raise an exception as expected")
-        except ShellCommandException as scex:
-
-            self.assertEqual(1, scex.ExitCode)
-            self.assertTrue("cannot be demoted because it is not running" in scex.Stderr)
-            self.assertFalse(self.__is_service_running())
+        shell_command = "bash {0} demote".format(self.shell_script_path)
+        shell_command_results = Shell.execute_shell_command(shell_command, env=self.env)
+        self.assertEqual(0, shell_command_results.ExitCode)
+        self.assertFalse(self.__is_service_running())
 
         if self.__is_service_running():
             self.__stop_mock_service()
@@ -280,20 +307,38 @@ class Test_pfra(TestCase):
         if self.__is_service_running():
             self.__stop_mock_service()
 
-        try:
-            tmp_env = self.env.copy()
-            self.env["OCF_RESKEY_promote_script"] = os.path.join('tmp', "this_does_not_exist.sh")
+        tmp_env = self.env.copy()
+        tmp_env["OCF_RESKEY_demote_script"] = os.path.join('tmp', "this_does_not_exist.sh")
 
-            shell_command = "bash {0} demote".format(self.shell_script_path)
-            shell_command_results = Shell.execute_shell_command(shell_command, env=self.env)
-            raise Exception("The test case did not raise an exception as expected")
-        except ShellCommandException as scex:
-
-            self.assertEqual(1, scex.ExitCode)
-            self.assertTrue("cannot be demoted because it is not running" in scex.Stderr)
-            self.assertFalse(self.__is_service_running())
+        shell_command = "bash {0} demote".format(self.shell_script_path)
+        with self.assertRaises(ShellCommandException) as scex_context:
+            shell_command_results = Shell.execute_shell_command(shell_command, env=tmp_env)
+        scex = scex_context.exception
+        self.assertEqual(1, scex.ExitCode)
+        self.assertTrue("script does not exist" in scex.Stderr)
+        self.assertFalse(self.__is_service_running())
 
         if self.__is_service_running():
             self.__stop_mock_service()
 
         self.env["OCF_RESKEY_demote_script"] = self.demote_script_path
+
+    def test__demote__Failure__script_returns_non_zero_exit(self):
+        if not self.__is_service_running():
+            self.__start_mock_service()
+
+
+        tmp_env = dict(self.env)
+        tmp_env["OCF_RESKEY_demote_script"] = os.path.join(self.current_dir, "MockService", "demote-non-zero-exit.sh")
+
+        shell_command = "bash {0} demote".format(self.shell_script_path)
+        with self.assertRaises(ShellCommandException) as scex_context:
+            shell_command_results = Shell.execute_shell_command(shell_command, env=tmp_env)
+        scex = scex_context.exception
+        self.assertEqual(12, scex.ExitCode)
+        self.assertTrue(self.__is_service_running())
+
+        if self.__is_service_running():
+            self.__stop_mock_service()
+
+        self.env["OCF_RESKEY_promote_script"] = self.promote_script_path

@@ -70,7 +70,9 @@ EOF
 # ===================================================
 
 pfra_meta_data() {
-    cat $(pwd)/pfra-metadata.xml
+    CURRENT_DIR=$(dirname $0)
+    cat ${CURRENT_DIR}/pfra-metadata.xml
+    exit $OCF_SUCCESS
 }
 
 # ===================================================
@@ -81,7 +83,23 @@ pfra_meta_data() {
 # service cannot be started successfully.
 
 pfra_meta_start(){
+
+    # We will check to see if our cluster has a master yet
+#    ocf_log info "Checking if any master nodes exist in the cluster"
+#    CURRENT_MASTERS=$(pcs status | grep -A 2 named | grep -E '^(\s+)Masters: \[.*\]' || true)
+
+    # If there is no master currently, promote this node and start
+#    if [ -z "${CURRENT_MASTERS}" ]; then
+#        ocf_log info "A master was not found. Promoting to master"
+#        pfra_meta_promote
+   # If there is already a master, demote this node and start
+#    else
+#        ocf_log info "A master was found. Demoting to slave"
+        pfra_meta_demote
+#    fi
+
     ocf_log info "Starting the ${OCF_RESKEY_service_name} service using systemctl."
+    systemctl reset-failed ${OCF_RESKEY_service_name} || true
     systemctl start $OCF_RESKEY_service_name
     last_exit_code=$?
     ocf_log info "Starting the service returned ${last_exit_code} exit code"
@@ -89,6 +107,7 @@ pfra_meta_start(){
         ocf_log info "Starting the service succeeded"
         return $OCF_SUCCESS
     else
+        ocf_exit_reason "Starting the service returned a non successful error code: ${last_exit_code}"
         return $OCF_ERR_GENERIC
     fi
 }
@@ -102,7 +121,7 @@ pfra_meta_stop(){
         ocf_log info "Stopping the service succeeded."
         return $OCF_SUCCESS
     else
-        ocf_log error "Stopping the service failed."
+        ocf_exit_reason "Stopping the service returned a non successful error code: ${last_exit_code}"
         return $OCF_ERR_GENERIC
     fi
 }
@@ -127,44 +146,72 @@ pfra_meta_monitor(){
 
   if [ ! -f ${OCF_RESKEY_monitor_script} ]; then
     ocf_log error "The monitor script does not exist at path: ${OCF_RESKEY_monitor_script}"
+    ocf_exit_reason "The monitor script does not exist"
     return $OCF_ERR_GENERIC
   fi
 
   ocf_log info "Executing the monitor script."
   bash $OCF_RESKEY_monitor_script "$OCF_FUNCTIONS_DIR"
-  return $?
+  NODE_STATE=$?
+  ocf_log info "The monitor script exited with exit code ${NODE_STATE}"
+
+  return $NODE_STATE
 }
 
 pfra_meta_promote(){
 
-    if ! service_is_running ; then
-      ocf_log error "The service '${OCF_RESKEY_service_name}' cannot be promoted because it is not running."
-      return $OCF_ERR_GENERIC
-    fi
+#    if ! service_is_running ; then
+#      ocf_log error "The service '${OCF_RESKEY_service_name}' cannot be promoted because it is not running."
+#      return $OCF_ERR_GENERIC
+#    fi
 
     if [ ! -f ${OCF_RESKEY_promote_script} ]; then
       ocf_log error "The promotion script does not exist at path: ${OCF_RESKEY_promote_script}"
+      ocf_exit_reason "The promotion script does not exist"
       return $OCF_ERR_GENERIC
     fi
 
     ocf_log info "Executing the promotion script."
     bash ${OCF_RESKEY_promote_script}
+
+    last_exit_code=$?
+    ocf_log info "The Promotion script returned ${last_exit_code} exit code."
+    if [ "$last_exit_code" == "0" ]; then
+        ocf_log info "The Promotion script exiting successfully"
+        return $OCF_SUCCESS
+    else
+        ocf_log info "The Promotion script exiting unsuccessfully"
+        return $last_exit_code
+    fi
 }
 
 pfra_meta_demote(){
 
-    if ! service_is_running ; then
-      ocf_log error "The service '${OCF_RESKEY_service_name}' cannot be demoted because it is not running."
-      return $OCF_ERR_GENERIC
-    fi
+# We need to be able to demote the notde even if the service is not running
+
+#    if ! service_is_running ; then
+#      ocf_log error "The service '${OCF_RESKEY_service_name}' cannot be demoted because it is not running."
+#      return $OCF_ERR_GENERIC
+#    fi
 
     if [ ! -f ${OCF_RESKEY_demote_script} ]; then
       ocf_log error "The demotion script does not exist at path: ${OCF_RESKEY_demote_script}"
+      ocf_exit_reason "The demotion script does not exist"
       return $OCF_ERR_GENERIC
     fi
 
     ocf_log info "Executing the demotion script."
     bash ${OCF_RESKEY_demote_script}
+
+    last_exit_code=$?
+    ocf_log info "The Demotion script returned ${last_exit_code} exit code."
+    if [ "$last_exit_code" == "0" ]; then
+        ocf_log info "The Demotion script exiting successfully"
+        return $OCF_SUCCESS
+    else
+        ocf_log info "The Demotion script exiting unsuccessfully"
+        return $last_exit_code
+    fi
 }
 
 # ===================================================
@@ -182,6 +229,8 @@ case "$1" in
         pfra_meta_promote ;;
     demote)
         pfra_meta_demote ;;
+    meta-data)
+        pfra_meta_data ;;
     *)
         usage ;;
 esac

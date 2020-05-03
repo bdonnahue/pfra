@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">
 
-<resource-agent name="named">
+<resource-agent name="pfra">
 
     <version>1.0</version>
-    <longdesc lang="en">Resource script for named (Bind) server. It manages named as an HA resource.</longdesc>
-    <shortdesc lang="en">Manages a named server</shortdesc>
+    <longdesc lang="en">A generic resource script managing resources which can take on a master or slave status.</longdesc>
+    <shortdesc lang="en">A generic resource script for managing multistate resources.</shortdesc>
 
     <parameters>
 
-        <parameter name="service_namet" unique="0" required="0">
+        <parameter name="service_name" unique="0" required="0">
             <longdesc lang="en">The name of service to monitor.</longdesc>
             <shortdesc lang="en">The name of service to monitor</shortdesc>
             <content type="string" default="${OCF_RESKEY_service_name_default}" />
@@ -25,6 +25,12 @@
             <longdesc lang="en">Path to the script which will demote a node to the slave role.</longdesc>
             <shortdesc lang="en">Demotion script path</shortdesc>
             <content type="string" default="${OCF_RESKEY_demote_script_default}" />
+        </parameter>
+
+        <parameter name="monitor_script" unique="0" required="0">
+            <longdesc lang="en">Path to the script which will analyze a note and determine its state or role.</longdesc>
+            <shortdesc lang="en">Monitor script path</shortdesc>
+            <content type="string" default="${OCF_RESKEY_monitor_script_default}" />
         </parameter>
 
     </parameters>
