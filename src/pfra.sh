@@ -105,10 +105,11 @@ pfra_meta_start(){
     ocf_log info "Starting the service returned ${last_exit_code} exit code"
     if [ "$last_exit_code" == "0" ]; then
         ocf_log info "Starting the service succeeded"
+        ocf_exit_reason "Starting the service succeeded"
         return $OCF_SUCCESS
     else
         ocf_exit_reason "Starting the service returned a non successful error code: ${last_exit_code}"
-        return $OCF_ERR_GENERIC
+        return $last_exit_code
     fi
 }
 
@@ -119,10 +120,11 @@ pfra_meta_stop(){
     ocf_log info "Stopping the service returned ${last_exit_code} exit code."
     if [ "$last_exit_code" == "0" ]; then
         ocf_log info "Stopping the service succeeded."
+        ocf_exit_reason "Stopping the service succeeded"
         return $OCF_SUCCESS
     else
         ocf_exit_reason "Stopping the service returned a non successful error code: ${last_exit_code}"
-        return $OCF_ERR_GENERIC
+        return $last_exit_code
     fi
 }
 
@@ -141,6 +143,7 @@ pfra_meta_monitor(){
 
   if ! service_is_running ; then
     ocf_log info "The service '${OCF_RESKEY_service_name}' is not running."
+    ocf_exit_reason "The service '${OCF_RESKEY_service_name}' is not running."
     return $OCF_NOT_RUNNING
   fi
 
@@ -152,10 +155,12 @@ pfra_meta_monitor(){
 
   ocf_log info "Executing the monitor script."
   bash $OCF_RESKEY_monitor_script "$OCF_FUNCTIONS_DIR"
-  NODE_STATE=$?
-  ocf_log info "The monitor script exited with exit code ${NODE_STATE}"
 
-  return $NODE_STATE
+  last_exit_code=$?
+  ocf_log info "Monitor Script returned ${last_exit_code} exit code."
+  ocf_exit_reason "Monitor Script returned ${last_exit_code} exit code."
+  return $last_exit_code
+
 }
 
 pfra_meta_promote(){
